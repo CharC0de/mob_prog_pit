@@ -18,7 +18,7 @@ class AddContacts extends StatefulWidget {
 }
 
 class _AddContactsState extends State<AddContacts> {
-  void getLoc() async {
+  Future<void> getLoc() async {
     Position location = await _determinePosition();
     List<Placemark> placemarks = await placemarkFromCoordinates(
       location.latitude,
@@ -89,9 +89,6 @@ class _AddContactsState extends State<AddContacts> {
       _contactController.text = widget.contact!.contact;
       _addressController.text = widget.contact!.address;
     }
-    if (widget.index == 0 && widget.index != null) {
-      getLoc();
-    }
     super.initState();
   }
 
@@ -107,67 +104,75 @@ class _AddContactsState extends State<AddContacts> {
   Widget build(BuildContext context) {
     var contacts;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Add Contacts'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.of(context).pop(false),
-          // To prevent back button pressed without add/update
-        ),
-      ),
-      body: Center(
-        // Create two text fields to key in name and contact
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              _buildTextField(_nameController, 'Name'),
-              SizedBox(height: 30),
-              _buildTextField(_contactController, 'Contact'),
-              SizedBox(height: 20),
-              _buildTextField(_addressController, 'Address'),
-              SizedBox(height: 20),
-              ElevatedButton(
-                // This button is pressed to add contact
-                onPressed: () async {
-                  // If contact has data, then update existing list
-                  // according to id, else create a new contact
-                  if (widget.contact != null) {
-                    await DBHelper.updateContacts(Contact(
-                      id: widget.contact!.id, // Have to add id here
-                      name: _nameController.text,
-                      contact: _contactController.text,
-                      address: _addressController.text,
-                    ));
-
-                    Navigator.of(context).pop(true);
-                  } else {
-                    await DBHelper.createContacts(Contact(
-                      name: _nameController.text,
-                      contact: _contactController.text,
-                      address: _addressController.text,
-                    ));
-
-                    Navigator.of(context).pop(true);
-                  }
-                },
-                child: Text('Save'),
-              ),
-              SizedBox(height: 20),
-              Visibility(
-                visible: _nameController.text != "",
-                child: ElevatedButton(
-                  onPressed: () =>
-                      _openGoogleMaps(context, _addressController.text),
-                  child: Text('Open Google Maps'),
-                ),
-              )
-            ],
+        appBar: AppBar(
+          title: Text('Add Contacts'),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios),
+            onPressed: () => Navigator.of(context).pop(false),
+            // To prevent back button pressed without add/update
           ),
         ),
-      ),
-    );
+        body: Center(
+          child: SingleChildScrollView(
+            // Create two text fields to key in name and contact
+            child: Padding(
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  _buildTextField(_nameController, 'Name'),
+                  SizedBox(height: 30),
+                  _buildTextField(_contactController, 'Contact'),
+                  SizedBox(height: 20),
+                  _buildTextField(_addressController, 'Address'),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    // This button is pressed to add contact
+                    onPressed: () async {
+                      // If contact has data, then update existing list
+                      // according to id, else create a new contact
+                      if (widget.contact != null) {
+                        await DBHelper.updateContacts(Contact(
+                          id: widget.contact!.id, // Have to add id here
+                          name: _nameController.text,
+                          contact: _contactController.text,
+                          address: _addressController.text,
+                        ));
+                        Navigator.of(context).pop(true);
+                      } else {
+                        await DBHelper.createContacts(Contact(
+                          name: _nameController.text,
+                          contact: _contactController.text,
+                          address: _addressController.text,
+                        ));
+
+                        Navigator.of(context).pop(true);
+                      }
+                    },
+                    child: Text('Save'),
+                  ),
+                  SizedBox(height: 20),
+                  Visibility(
+                      visible: widget.index == 0,
+                      child: ElevatedButton(
+                          onPressed: () {
+                            getLoc();
+                          },
+                          child: Text('Generate Location'))),
+                  SizedBox(height: 20),
+                  Visibility(
+                    visible: _nameController.text != "",
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          _openGoogleMaps(context, _addressController.text),
+                      child: Text('Open Google Maps'),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ));
   }
 
   Future<void> launchUrl(String url) async {

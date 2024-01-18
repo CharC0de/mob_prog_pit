@@ -84,6 +84,8 @@ class _DemoState extends State<Demo> {
   final _contactController = TextEditingController();
   final _addressController = TextEditingController();
 
+  int index = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,99 +114,100 @@ class _DemoState extends State<Demo> {
           //if snapshot return empty [], show text
           //else show contact list
           return snapshot.data!.isEmpty
-              ? Center(
-                  child: AlertDialog(
-                    title: Text('Hello User please Register Your Identity'),
-                    content: Column(
-                      children: <Widget>[
-                        _buildTextField(_nameController, 'Name'),
-                        SizedBox(height: 30),
-                        _buildTextField(_contactController, 'Contact'),
-                        SizedBox(height: 20),
-                        _buildTextField(_addressController, 'Address'),
-                        SizedBox(height: 20),
-                        ElevatedButton(
-                          // This button is pressed to add contact
-                          onPressed: () async {
-                            // If contact has data, then update existing list
-                            // according to id, else create a new contact
+              ? AlertDialog(
+                  title: Text('Hello User please Register Your Identity'),
+                  content: SingleChildScrollView(
+                      child: Column(
+                    children: <Widget>[
+                      _buildTextField(_nameController, 'Name'),
+                      SizedBox(height: 30),
+                      _buildTextField(_contactController, 'Contact'),
+                      SizedBox(height: 20),
+                      _buildTextField(_addressController, 'Address'),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        // This button is pressed to add contact
+                        onPressed: () async {
+                          // If contact has data, then update existing list
+                          // according to id, else create a new contact
 
-                            await DBHelper.createContacts(Contact(
-                              name: _nameController.text,
-                              contact: _contactController.text,
-                              address: _addressController.text,
-                            ));
+                          await DBHelper.createContacts(Contact(
+                            name: _nameController.text,
+                            contact: _contactController.text,
+                            address: _addressController.text,
+                          ));
 
-                            Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (BuildContext context) =>
-                                        super.widget));
-                          },
-                          child: Text('Save'),
-                        ),
-                        SizedBox(height: 20),
-                        Visibility(
-                          visible: _nameController.text != "",
-                          child: ElevatedButton(
-                            onPressed: () => _openGoogleMaps(
-                                context, _addressController.text),
-                            child: Text('Open Google Maps'),
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (BuildContext context) =>
+                                      super.widget));
+                        },
+                        child: Text('Save'),
+                      ),
+                    ],
+                  )),
                 )
               : ListView(
                   children: snapshot.data!.map((contacts) {
                     return Center(
                       child: ListTile(
-                        title: Text(contacts.name),
+                        title: snapshot.data!.first.name == contacts.name
+                            ? Text("${contacts.name} (You)")
+                            : Text(contacts.name),
                         subtitle: Text(contacts.contact),
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () async {
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: Text('Delete contact'),
-                                  content: Text('Are you sure you want'
-                                      ' to delete this contact?'),
-                                  actionsAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  actions: <Widget>[
-                                    TextButton(
-                                        onPressed: () async {
-                                          Database db = await DBHelper.initDB();
-                                          db.rawDelete(
-                                              'DELETE FROM contacts where id ="${contacts.id}"');
-                                          Navigator.pushReplacement(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder:
-                                                      (BuildContext context) =>
-                                                          super.widget));
-                                        },
-                                        child: const Text('Delete')),
-                                    TextButton(
-                                      child: Text('Cancel'),
-                                      onPressed: () {
-                                        Navigator.of(context).pop(false);
-                                      },
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                        ),
+                        trailing: snapshot.data!.first.name != contacts.name &&
+                                    snapshot.data!.length > 1 ||
+                                snapshot.data!.length == 1
+                            ? IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () async {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: Text('Delete contact'),
+                                        content: Text('Are you sure you want'
+                                            ' to delete this contact?'),
+                                        actionsAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        actions: <Widget>[
+                                          TextButton(
+                                              onPressed: () async {
+                                                Database db =
+                                                    await DBHelper.initDB();
+                                                db.rawDelete(
+                                                    'DELETE FROM contacts where id ="${contacts.id}"');
+                                                Navigator.pushReplacement(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (BuildContext
+                                                                context) =>
+                                                            super.widget));
+                                              },
+                                              child: const Text('Delete')),
+                                          TextButton(
+                                            child: Text('Cancel'),
+                                            onPressed: () {
+                                              Navigator.of(context).pop(false);
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                              )
+                            : null,
                         onTap: () async {
                           //tap on ListTile, for update
                           final refresh = await Navigator.of(context)
                               .push(MaterialPageRoute(
                                   builder: (_) => AddContacts(
+                                        index: snapshot.data!.first.name ==
+                                                contacts.name
+                                            ? 0
+                                            : null,
                                         contact: Contact(
                                           id: contacts.id,
                                           name: contacts.name,
@@ -212,8 +215,7 @@ class _DemoState extends State<Demo> {
                                           address: contacts.address,
                                         ),
                                       )));
-
-                          if (refresh) {
+                          if (refresh! && refresh != null) {
                             setState(() {
                               //if return true, rebuild whole widget
                             });
