@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pit_proj/helper.dart';
-import 'package:url_launcher/url_launcher.dart';
+import './location_search.dart';
 
 import 'contacts.dart';
 
@@ -103,7 +103,6 @@ class _AddContactsState extends State<AddContacts> {
 
   @override
   Widget build(BuildContext context) {
-    var contacts;
     return Scaffold(
         appBar: AppBar(
           title: Text('${widget.contact != null ? "Edit" : "Add"} Contacts'),
@@ -180,23 +179,12 @@ class _AddContactsState extends State<AddContacts> {
         ));
   }
 
-  Future<void> launchUrl(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      print('Could not launch $url');
-    }
-  }
-
   void _openGoogleMaps(BuildContext context, String address) async {
     if (address.isNotEmpty) {
-      final googleMapsUrl =
-          'https://www.google.com/maps/search/?api=1&query=$address';
-      if (await canLaunch(googleMapsUrl)) {
-        await launch(googleMapsUrl);
-      } else {
-        print('Could not launch $googleMapsUrl');
-      }
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (coontext) => MapScreen(
+                location: address,
+              )));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

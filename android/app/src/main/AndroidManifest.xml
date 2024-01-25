@@ -6,6 +6,9 @@
         android:label="mobprog_study"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDvYGYRHleXi7MNn7wzltiRfy4ze5T7IrY" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
