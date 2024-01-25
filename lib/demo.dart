@@ -5,7 +5,6 @@ import 'package:pit_proj/helper.dart';
 import 'package:pit_proj/add_contacts.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:url_launcher/url_launcher.dart';
-import './helper.dart';
 import 'package:geolocator/geolocator.dart';
 
 class Demo extends StatefulWidget {
@@ -91,6 +90,7 @@ class _DemoState extends State<Demo> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text('Contacts'),
       ),
       //add Future Builder to get contacts
