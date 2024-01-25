@@ -78,6 +78,7 @@ class _AddContactsState extends State<AddContacts> {
   final _nameController = TextEditingController();
   final _contactController = TextEditingController();
   final _addressController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -105,7 +106,7 @@ class _AddContactsState extends State<AddContacts> {
     var contacts;
     return Scaffold(
         appBar: AppBar(
-          title: Text('Add Contacts'),
+          title: Text('${widget.contact != null ? "Edit" : "Add"} Contacts'),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios),
             onPressed: () => Navigator.of(context).pop(false),
@@ -117,59 +118,63 @@ class _AddContactsState extends State<AddContacts> {
             // Create two text fields to key in name and contact
             child: Padding(
               padding: const EdgeInsets.all(15),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  _buildTextField(_nameController, 'Name'),
-                  SizedBox(height: 30),
-                  _buildTextField(_contactController, 'Contact'),
-                  SizedBox(height: 20),
-                  _buildTextField(_addressController, 'Address'),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    // This button is pressed to add contact
-                    onPressed: () async {
-                      // If contact has data, then update existing list
-                      // according to id, else create a new contact
-                      if (widget.contact != null) {
-                        await DBHelper.updateContacts(Contact(
-                          id: widget.contact!.id, // Have to add id here
-                          name: _nameController.text,
-                          contact: _contactController.text,
-                          address: _addressController.text,
-                        ));
-                        Navigator.of(context).pop(true);
-                      } else {
-                        await DBHelper.createContacts(Contact(
-                          name: _nameController.text,
-                          contact: _contactController.text,
-                          address: _addressController.text,
-                        ));
+              child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      _buildTextField(_nameController, 'Name'),
+                      SizedBox(height: 30),
+                      _buildTextField(_contactController, 'Contact'),
+                      SizedBox(height: 20),
+                      _buildTextField(_addressController, 'Address'),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        // This button is pressed to add contact
+                        onPressed: () async {
+                          // If contact has data, then update existing list
+                          // according to id, else create a new contact
+                          if (_formKey.currentState!.validate()) {
+                            if (widget.contact != null) {
+                              await DBHelper.updateContacts(Contact(
+                                id: widget.contact!.id, // Have to add id here
+                                name: _nameController.text,
+                                contact: _contactController.text,
+                                address: _addressController.text,
+                              ));
+                              Navigator.of(context).pop(true);
+                            } else {
+                              await DBHelper.createContacts(Contact(
+                                name: _nameController.text,
+                                contact: _contactController.text,
+                                address: _addressController.text,
+                              ));
 
-                        Navigator.of(context).pop(true);
-                      }
-                    },
-                    child: Text('Save'),
-                  ),
-                  SizedBox(height: 20),
-                  Visibility(
-                      visible: widget.index == 0,
-                      child: ElevatedButton(
-                          onPressed: () {
-                            getLoc();
-                          },
-                          child: Text('Generate Location'))),
-                  SizedBox(height: 20),
-                  Visibility(
-                    visible: _nameController.text != "",
-                    child: ElevatedButton(
-                      onPressed: () =>
-                          _openGoogleMaps(context, _addressController.text),
-                      child: Text('Open Google Maps'),
-                    ),
-                  )
-                ],
-              ),
+                              Navigator.of(context).pop(true);
+                            }
+                          }
+                        },
+                        child: Text('Save'),
+                      ),
+                      SizedBox(height: 20),
+                      Visibility(
+                          visible: widget.index == 0,
+                          child: ElevatedButton(
+                              onPressed: () {
+                                getLoc();
+                              },
+                              child: Text('Generate Location'))),
+                      SizedBox(height: 20),
+                      Visibility(
+                        visible: widget.contact != null,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              _openGoogleMaps(context, _addressController.text),
+                          child: Text('Open Google Maps'),
+                        ),
+                      )
+                    ],
+                  )),
             ),
           ),
         ));
@@ -194,7 +199,7 @@ class _AddContactsState extends State<AddContacts> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Address is empty.'),
         ),
       );
@@ -203,8 +208,11 @@ class _AddContactsState extends State<AddContacts> {
 }
 
 //build a text field method
-TextField _buildTextField(TextEditingController _controller, String hint) {
-  return TextField(
+TextFormField _buildTextField(TextEditingController _controller, String hint) {
+  return TextFormField(
+    validator: (value) {
+      return value == "" || value == null ? "Please enter your $hint" : null;
+    },
     controller: _controller,
     decoration: InputDecoration(
       labelText: hint,

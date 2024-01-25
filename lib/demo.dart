@@ -34,8 +34,9 @@ class _DemoState extends State<Demo> {
     String? subAdministrativeArea = placemarks.first.subAdministrativeArea;
     String? locality = placemarks.first.locality;
     String? subLocality = placemarks.first.subLocality;
+    String? name = placemarks.first.name;
     String address =
-        "${administrativeArea ?? ''} ${subAdministrativeArea ?? ''} ${locality ?? ''} ${subLocality ?? ''}";
+        "${administrativeArea ?? ''} ${subAdministrativeArea ?? ''} ${locality ?? ''} ${subLocality ?? ''} ${name ?? ''}";
     setState(() {
       _addressController.text = address;
     });
@@ -83,7 +84,7 @@ class _DemoState extends State<Demo> {
   final _nameController = TextEditingController();
   final _contactController = TextEditingController();
   final _addressController = TextEditingController();
-
+  final _formKey = GlobalKey<FormState>();
   int index = 0;
 
   @override
@@ -117,111 +118,113 @@ class _DemoState extends State<Demo> {
               ? AlertDialog(
                   title: Text('Hello User please Register Your Identity'),
                   content: SingleChildScrollView(
-                      child: Column(
-                    children: <Widget>[
-                      _buildTextField(_nameController, 'Name'),
-                      SizedBox(height: 30),
-                      _buildTextField(_contactController, 'Contact'),
-                      SizedBox(height: 20),
-                      _buildTextField(_addressController, 'Address'),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        // This button is pressed to add contact
-                        onPressed: () async {
-                          // If contact has data, then update existing list
-                          // according to id, else create a new contact
+                      child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: <Widget>[
+                              _buildTextField(_nameController, 'Name'),
+                              SizedBox(height: 30),
+                              _buildTextField(_contactController, 'Contact'),
+                              SizedBox(height: 20),
+                              _buildTextField(_addressController, 'Address'),
+                              SizedBox(height: 20),
+                              ElevatedButton(
+                                // This button is pressed to add contact
+                                onPressed: () async {
+                                  // If contact has data, then update existing list
+                                  // according to id, else create a new contact
 
-                          await DBHelper.createContacts(Contact(
-                            name: _nameController.text,
-                            contact: _contactController.text,
-                            address: _addressController.text,
-                          ));
+                                  if (_formKey.currentState!.validate()) {
+                                    await DBHelper.createContacts(Contact(
+                                      name: _nameController.text,
+                                      contact: _contactController.text,
+                                      address: _addressController.text,
+                                    ));
 
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (BuildContext context) =>
-                                      super.widget));
-                        },
-                        child: Text('Save'),
-                      ),
-                    ],
-                  )),
+                                    Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (BuildContext context) =>
+                                                super.widget));
+                                  }
+                                },
+                                child: Text('Save'),
+                              ),
+                            ],
+                          ))),
                 )
               : ListView(
                   children: snapshot.data!.map((contacts) {
-                    return Center(
-                      child: ListTile(
-                        title: snapshot.data!.first.name == contacts.name
-                            ? Text("${contacts.name} (You)")
-                            : Text(contacts.name),
-                        subtitle: Text(contacts.contact),
-                        trailing: snapshot.data!.first.name != contacts.name &&
-                                    snapshot.data!.length > 1 ||
-                                snapshot.data!.length == 1
-                            ? IconButton(
-                                icon: Icon(Icons.delete),
-                                onPressed: () async {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        title: Text('Delete contact'),
-                                        content: Text('Are you sure you want'
-                                            ' to delete this contact?'),
-                                        actionsAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        actions: <Widget>[
-                                          TextButton(
-                                              onPressed: () async {
-                                                Database db =
-                                                    await DBHelper.initDB();
-                                                db.rawDelete(
-                                                    'DELETE FROM contacts where id ="${contacts.id}"');
-                                                Navigator.pushReplacement(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (BuildContext
-                                                                context) =>
-                                                            super.widget));
-                                              },
-                                              child: const Text('Delete')),
-                                          TextButton(
-                                            child: Text('Cancel'),
-                                            onPressed: () {
-                                              Navigator.of(context).pop(false);
+                    return ListTile(
+                      title: snapshot.data!.first.name == contacts.name
+                          ? Text("${contacts.name} (You)")
+                          : Text(contacts.name),
+                      subtitle: Text(contacts.contact),
+                      trailing: snapshot.data!.first.name != contacts.name &&
+                                  snapshot.data!.length > 1 ||
+                              snapshot.data!.length == 1
+                          ? IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () async {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: Text('Delete contact'),
+                                      content: Text('Are you sure you want'
+                                          ' to delete this contact?'),
+                                      actionsAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      actions: <Widget>[
+                                        TextButton(
+                                            onPressed: () async {
+                                              Database db =
+                                                  await DBHelper.initDB();
+                                              db.rawDelete(
+                                                  'DELETE FROM contacts where id ="${contacts.id}"');
+                                              Navigator.pushReplacement(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (BuildContext
+                                                              context) =>
+                                                          super.widget));
                                             },
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                              )
-                            : null,
-                        onTap: () async {
-                          //tap on ListTile, for update
-                          final refresh = await Navigator.of(context)
-                              .push(MaterialPageRoute(
-                                  builder: (_) => AddContacts(
-                                        index: snapshot.data!.first.name ==
-                                                contacts.name
-                                            ? 0
-                                            : null,
-                                        contact: Contact(
-                                          id: contacts.id,
-                                          name: contacts.name,
-                                          contact: contacts.contact,
-                                          address: contacts.address,
+                                            child: const Text('Delete')),
+                                        TextButton(
+                                          child: Text('Cancel'),
+                                          onPressed: () {
+                                            Navigator.of(context).pop(false);
+                                          },
                                         ),
-                                      )));
-                          if (refresh! && refresh != null) {
-                            setState(() {
-                              //if return true, rebuild whole widget
-                            });
-                          }
-                        },
-                      ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                            )
+                          : null,
+                      onTap: () async {
+                        //tap on ListTile, for update
+                        final bool? refresh =
+                            await Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => AddContacts(
+                                      index: snapshot.data!.first.name ==
+                                              contacts.name
+                                          ? 0
+                                          : null,
+                                      contact: Contact(
+                                        id: contacts.id,
+                                        name: contacts.name,
+                                        contact: contacts.contact,
+                                        address: contacts.address,
+                                      ),
+                                    )));
+                        if (refresh != null) {
+                          setState(() {
+                            //if return true, rebuild whole widget
+                          });
+                        }
+                      },
                     );
                   }).toList(),
                 );
@@ -244,8 +247,11 @@ class _DemoState extends State<Demo> {
   }
 }
 
-TextField _buildTextField(TextEditingController _controller, String hint) {
-  return TextField(
+TextFormField _buildTextField(TextEditingController _controller, String hint) {
+  return TextFormField(
+    validator: (value) {
+      return value == "" || value == null ? "Please enter your $hint" : null;
+    },
     controller: _controller,
     decoration: InputDecoration(
       labelText: hint,
